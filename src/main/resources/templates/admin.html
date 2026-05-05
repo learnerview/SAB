@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<th:block th:replace="~{fragments/head :: head}" th:with="title='Admin — SAB'" />
+<body>
+    <th:block th:replace="~{fragments/sidebar}" th:with="active='admin'" />
+    <div class="main">
+        <header class="header-strip">
+            <h1 class="page-title">Admin Console</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem">Central management for clusters, identities, and handlers.</p>
+        </header>
+
+        <div class="viewport">
+            <div class="tabs">
+                <div class="tab-btn active" onclick="switchTab('stats', event)">Infrastructure</div>
+                <div class="tab-btn" onclick="switchTab('schedules', event)">Schedules</div>
+                <div class="tab-btn" onclick="switchTab('keys', event)">API Keys</div>
+                <div class="tab-btn" onclick="switchTab('handlers', event)">Registry</div>
+            </div>
+
+            <!-- Tab: Stats -->
+            <div id="tab-stats" class="tab-content">
+                <section class="section">
+                    <div class="section-header">
+                        <h3 class="section-title">Global Operational Health</h3>
+                        <div style="display:flex; gap:1rem;">
+                            <button class="btn btn-outline btn-sm" onclick="clearQueues()">Purge Queues</button>
+                            <button class="btn btn-primary btn-sm" onclick="loadStats()">Sync Cluster</button>
+                        </div>
+                    </div>
+                    <div class="metrics-bar" style="padding: 1.5rem 0; background: none; border-bottom: none;">
+                        <div class="metric-item">
+                            <div class="label">Total Queued</div>
+                            <div class="value" id="stat-queued">0</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="label">Total Running</div>
+                            <div class="value" id="stat-running">0</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="label">Total Success</div>
+                            <div class="value" id="stat-success">0</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="label">Total Failed</div>
+                            <div class="value" id="stat-failed">0</div>
+                        </div>
+                    </div>
+                    <div class="metrics-bar" id="admin-metrics" style="padding: 1.5rem 0; background: none; border-bottom: none;">
+                        <div class="metric-item">
+                            <div class="label">sab.jobs.dlq</div>
+                            <div class="value">0</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="label">sab.lease.reaper.recovered</div>
+                            <div class="value">0</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab: Schedules -->
+            <div id="tab-schedules" class="tab-content" style="display: none;">
+                <section class="section">
+                    <div class="section-header">
+                        <h3 class="section-title">Schedule Management</h3>
+                        <button class="btn btn-primary btn-sm" onclick="showCreateScheduleModal()">+ Create Schedule</button>
+                    </div>
+                    <div class="data-box">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Schedule ID</th>
+                                    <th>Cron Expression</th>
+                                    <th>Job Type</th>
+                                    <th>Priority</th>
+                                    <th>Next Run</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedules-tbody">
+                                <tr><td colspan="7" class="empty">Loading schedules...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab: Keys -->
+            <div id="tab-keys" class="tab-content" style="display: none;">
+                <section class="section">
+                    <div class="section-header">
+                        <h3 class="section-title">Multitenant Access Control</h3>
+                        <button class="btn btn-primary btn-sm" onclick="showCreateKeyModal()">+ Issue Key</button>
+                    </div>
+                    <div class="data-box">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Identity Label</th>
+                                    <th>Producer ID</th>
+                                    <th>Secret Key</th>
+                                    <th>Status</th>
+                                    <th>Role Profile</th>
+                                    <th>Copy</th>
+                                    <th>Governance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keys-tbody">
+                                <tr><td colspan="6" class="empty">Accessing merchant security store...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab: Handlers -->
+            <div id="tab-handlers" class="tab-content" style="display: none;">
+                <section class="section">
+                    <div class="section-header">
+                        <h3 class="section-title">Unified Handlers Registry</h3>
+                    </div>
+                    <div class="data-box">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Job Type</th>
+                                    <th>Responsibility Profile</th>
+                                    <th>Implementation Core</th>
+                                </tr>
+                            </thead>
+                            <tbody id="handlers-tbody">
+                                <tr><td colspan="3" class="empty">Retrieving microservice manifest...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Creation Modal -->
+    <div id="schedule-modal" class="modal" style="display:none; position:fixed; z-index:2001; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter: blur(4px);">
+        <div style="max-width:600px; margin: 10% auto; background:var(--bg-alt); padding: 2rem; border-radius: var(--radius); border: 1px solid var(--border-strong);">
+            <h3 style="margin-bottom: 2rem; font-size: 1.25rem;">Create Schedule</h3>
+            <div class="form-group">
+                <label>Producer ID</label>
+                <input type="text" id="scheduleProducer" placeholder="tenant-001">
+            </div>
+            <div class="form-group">
+                <label>Cron Expression</label>
+                <input type="text" id="scheduleCron" placeholder="0 0 * * * (daily at midnight)">
+                <small style="color:var(--text-muted);">Unix cron format: minute hour day month weekday</small>
+            </div>
+            <div class="form-group">
+                <label>Job Type</label>
+                <input type="text" id="scheduleJobType" placeholder="webhook">
+            </div>
+            <div class="form-group">
+                <label>Priority</label>
+                <select id="schedulePriority">
+                    <option value="NORMAL">Normal</option>
+                    <option value="HIGH">High</option>
+                    <option value="LOW">Low</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Execution Endpoint</label>
+                <input type="text" id="scheduleEndpoint" placeholder="https://example.com/webhook">
+            </div>
+            <div class="form-group">
+                <label>Timeout (seconds)</label>
+                <input type="number" id="scheduleTimeout" value="30" min="1">
+            </div>
+            <div class="form-group">
+                <label>Max Attempts</label>
+                <input type="number" id="scheduleMaxAttempts" value="3" min="1">
+            </div>
+            <div class="form-group">
+                <label>Payload (JSON)</label>
+                <textarea id="schedulePayload" rows="4" placeholder='{"key": "value"}'></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2rem;">
+                <button class="btn btn-outline" onclick="closeScheduleModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitCreateSchedule()">Create Schedule</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minimal Modal Overlay -->
+    <div id="key-modal" class="modal" style="display:none; position:fixed; z-index:2001; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter: blur(4px);">
+        <div style="max-width:440px; margin: 10% auto; background:var(--bg-alt); padding: 2rem; border-radius: var(--radius); border: 1px solid var(--border-strong);">
+            <h3 style="margin-bottom: 2rem; font-size: 1.25rem;">Issue Identity Token</h3>
+            <div class="form-group">
+                <label>Merchant / User Label</label>
+                <input type="text" id="newKeyLabel" placeholder="e.g. Sales Analytics Team">
+            </div>
+            <div class="form-group">
+                <label>Merchant Identifier (Producer ID)</label>
+                <input type="text" id="newKeyProducer" placeholder="sales-tenant-01">
+            </div>
+            <div class="form-group">
+                <label>Access Level</label>
+                <select id="newKeyIsAdmin">
+                    <option value="false">Standard Tenant</option>
+                    <option value="true">Global Administrator</option>
+                </select>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2rem;">
+                <button class="btn btn-outline" onclick="closeKeyModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitCreateKey()">Generate Key</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        function switchTab(tab, event) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).style.display = 'block';
+            event.target.classList.add('active');
+            if (tab === 'keys') loadKeys();
+            if (tab === 'stats') loadAdminMetrics();
+            if (tab === 'schedules') loadSchedules();
+        }
+        function showCreateKeyModal() { document.getElementById('key-modal').style.display = 'block'; }
+        function closeKeyModal() { document.getElementById('key-modal').style.display = 'none'; }
+        function showCreateScheduleModal() { document.getElementById('schedule-modal').style.display = 'block'; }
+        function closeScheduleModal() { document.getElementById('schedule-modal').style.display = 'none'; }
+        
+        async function loadSchedules() {
+            try {
+                const response = await fetch('/api/v1/schedules');
+                const result = await response.json();
+                const tbody = document.getElementById('schedules-tbody');
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    tbody.innerHTML = result.data.map(schedule => `
+                        <tr>
+                            <td><code>${schedule.id}</code></td>
+                            <td><code>${schedule.cron}</code></td>
+                            <td>${schedule.jobType}</td>
+                            <td><span class="badge badge-${schedule.priority.toLowerCase()}">${schedule.priority}</span></td>
+                            <td>${new Date(schedule.nextRunAt).toLocaleString()}</td>
+                            <td><span class="badge badge-${schedule.active ? 'success' : 'muted'}">${schedule.active ? 'Active' : 'Inactive'}</span></td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" onclick="deleteSchedule('${schedule.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty">No schedules found</td></tr>';
+                }
+            } catch (error) {
+                console.error('Failed to load schedules:', error);
+                document.getElementById('schedules-tbody').innerHTML = '<tr><td colspan="7" class="empty">Failed to load schedules</td></tr>';
+            }
+        }
+        
+        async function submitCreateSchedule() {
+            const payload = document.getElementById('schedulePayload').value;
+            let parsedPayload = {};
+            
+            if (payload) {
+                try {
+                    parsedPayload = JSON.parse(payload);
+                } catch (e) {
+                    showToast('Invalid JSON payload', 'error');
+                    return;
+                }
+            }
+            
+            const scheduleData = {
+                cron: document.getElementById('scheduleCron').value,
+                jobType: document.getElementById('scheduleJobType').value,
+                priority: document.getElementById('schedulePriority').value,
+                execution: {
+                    type: 'HTTP',
+                    endpoint: document.getElementById('scheduleEndpoint').value,
+                    timeoutSeconds: parseInt(document.getElementById('scheduleTimeout').value)
+                },
+                maxAttempts: parseInt(document.getElementById('scheduleMaxAttempts').value),
+                payload: parsedPayload
+            };
+            
+            try {
+                const response = await fetch('/api/v1/schedules', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': getApiKey()
+                    },
+                    body: JSON.stringify(scheduleData)
+                });
+                
+                if (response.ok) {
+                    showToast('Schedule created successfully', 'success');
+                    closeScheduleModal();
+                    loadSchedules();
+                    // Clear form
+                    document.getElementById('scheduleCron').value = '';
+                    document.getElementById('scheduleJobType').value = '';
+                    document.getElementById('scheduleEndpoint').value = '';
+                    document.getElementById('schedulePayload').value = '';
+                } else {
+                    const error = await response.text();
+                    showToast('Failed to create schedule: ' + error, 'error');
+                }
+            } catch (error) {
+                showToast('Failed to create schedule: ' + error.message, 'error');
+            }
+        }
+        
+        async function deleteSchedule(scheduleId) {
+            if (!confirm('Are you sure you want to delete this schedule?')) return;
+            
+            try {
+                const response = await fetch(`/api/v1/schedules/${scheduleId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    }
+                });
+                
+                if (response.ok) {
+                    showToast('Schedule deleted successfully', 'success');
+                    loadSchedules();
+                } else {
+                    const error = await response.text();
+                    showToast('Failed to delete schedule: ' + error, 'error');
+                }
+            } catch (error) {
+                showToast('Failed to delete schedule: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

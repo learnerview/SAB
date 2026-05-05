@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<th:block th:replace="~{fragments/head :: head}" th:with="title='Dead Letter Queue — SAB'" />
+<body>
+    <th:block th:replace="~{fragments/sidebar}" th:with="active='dlq'" />
+    <main class="main">
+        <header class="header-strip">
+            <h1 class="page-title">Dead Letter Queue</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem">Jobs that exhausted retries or failed permanently land here for manual review.</p>
+        </header>
+        <div class="viewport">
+            <section class="section">
+                <div class="section-header">
+                    <h3 class="section-title">Failed Job Inventory</h3>
+                    <div class="live-toggle" onclick="toggleLive()">
+                        <span class="dot dot-xs dot-green"></span>
+                        <span id="sse-label" style="font-size:0.75rem">Live Sync Mode</span>
+                    </div>
+                </div>
+                <div class="data-box">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Tenant</th>
+                                <th>Failed At</th>
+                                <th>Reason</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dlq-tbody">
+                            <tr><td colspan="7" class="empty">Scanning for failed jobs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+    <div id="toast-container" class="toast-container"></div>
+    <script th:src="@{/js/app.js}"></script>
+</body>
+</html>

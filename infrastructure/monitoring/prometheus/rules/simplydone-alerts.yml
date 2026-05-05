@@ -1,0 +1,154 @@
+# Prometheus Alerting Rules for SAB Production
+# Monitors application health, performance, and infrastructure
+
+groups:
+  - name: simplydown.rules
+    rules:
+      # Application availability alerts
+      - alert: SimplyDownAppDown
+        expr: up{job="sab-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: sab
+        annotations:
+          summary: "SAB application is down"
+          description: "SimplyDown application has been down for more than 1 minute"
+          runbook_url: "https://docs.sab.local/runbooks/app-down"
+
+      - alert: SimplyDownHighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: sab
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second"
+          runbook_url: "https://docs.sab.local/runbooks/high-error-rate"
+
+      - alert: SimplyDownHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: sab
+        annotations:
+          summary: "High latency detected"
+          description: "95th percentile latency is {{ $value }} seconds"
+          runbook_url: "https://docs.sab.local/runbooks/high-latency"
+
+      # Job processing alerts
+      - alert: SimplyDownJobQueueBacklog
+        expr: sab_jobs_queued_total > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: sab
+        annotations:
+          summary: "Job queue backlog detected"
+          description: "{{ $value }} jobs are queued, indicating potential processing issues"
+          runbook_url: "https://docs.sab.local/runbooks/queue-backlog"
+
+      - alert: SimplyDownJobFailureRate
+        expr: rate(sab_jobs_failed_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          service: sab
+        annotations:
+          summary: "High job failure rate"
+          description: "Job failure rate is {{ $value }} failures per second"
+          runbook_url: "https://docs.sab.local/runbooks/job-failures"
+
+      - alert: SimplyDownDLQGrowth
+        expr: increase(sab_jobs_dlq_total[1h]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: sab
+        annotations:
+          summary: "Dead Letter Queue growing"
+          description: "DLQ has grown by {{ $value }} jobs in the last hour"
+          runbook_url: "https://docs.sab.local/runbooks/dlq-growth"
+
+      # Infrastructure alerts
+      - alert: SimplyDownHighMemoryUsage
+        expr: (container_memory_usage_bytes{name="sab-app"} / container_spec_memory_limit_bytes{name="sab-app"}) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: sab
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} of limit"
+          runbook_url: "https://docs.sab.local/runbooks/high-memory"
+
+      - alert: SimplyDownHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{name="sab-app"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: sab
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.sab.local/runbooks/high-cpu"
+
+      # Database alerts
+      - alert: SimplyDownPostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: sab
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL has been down for more than 1 minute"
+          runbook_url: "https://docs.sab.local/runbooks/postgres-down"
+
+      - alert: SimplyDownPostgresHighConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: sab
+        annotations:
+          summary: "High PostgreSQL connections"
+          description: "{{ $value }} active connections"
+          runbook_url: "https://docs.sab.local/runbooks/postgres-connections"
+
+      # Redis alerts
+      - alert: SimplyDownRedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: sab
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis has been down for more than 1 minute"
+          runbook_url: "https://docs.sab.local/runbooks/redis-down"
+
+      - alert: SimplyDownRedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: sab
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.sab.local/runbooks/redis-memory"
+
+      # SSL Certificate alerts
+      - alert: SimplyDownSSLExpiring
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 7
+        for: 1m
+        labels:
+          severity: warning
+          service: sab
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate expires in {{ $value | humanizeDuration }}"
+          runbook_url: "https://docs.sab.local/runbooks/ssl-expiry"

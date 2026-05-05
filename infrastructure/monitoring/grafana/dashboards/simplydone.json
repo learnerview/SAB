@@ -1,0 +1,56 @@
+{
+  "id": null,
+  "uid": "sab",
+  "title": "SAB Overview",
+  "tags": ["sab"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "5s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Jobs Submitted",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(sab_jobs_submitted_total[1m]))",
+          "legendFormat": "submitted/s"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Jobs Completed",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(sab_jobs_completed_total[1m]))",
+          "legendFormat": "completed/s"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Jobs Failed",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(sab_jobs_failed_total[1m]))",
+          "legendFormat": "failed/s"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Jobs Retried",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(sab_jobs_retried_total[1m]))",
+          "legendFormat": "retried/s"
+        }
+      ]
+    }
+  ]
+}

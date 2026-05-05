@@ -1,0 +1,106 @@
+# OpenTelemetry Collector Configuration for SAB
+# Receives telemetry from application and exports to Prometheus
+
+receivers:
+  # OTLP gRPC receiver for application telemetry
+  otlp:
+    endpoint: 0.0.0.0:4317
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Prometheus receiver for scraping metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'sab-app'
+          static_configs:
+            - targets: ['app:8080']
+          metrics_path: '/actuator/prometheus'
+          scrape_interval: 15s
+        - job_name: 'redis'
+          static_configs:
+            - targets: ['redis:6379']
+          scrape_interval: 30s
+        - job_name: 'postgres'
+          static_configs:
+            - targets: ['postgres:5432']
+          scrape_interval: 30s
+
+processors:
+  # Batch processor for efficiency
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    limit_mib: 512
+
+  # Resource detection and enrichment
+  resource:
+    attributes:
+      - key: environment
+        value: production
+        action: upsert
+      - key: service.version
+        value: "2.0.0"
+        action: upsert
+
+  # Metrics transformation
+  metricstransform:
+    transforms:
+      - include: .*
+        match_type: regexp
+        action: update
+        operations:
+          - action: add_label
+            label: environment
+            value: production
+
+exporters:
+  # Prometheus exporter for metrics
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: "sab"
+    const_labels:
+      environment: "production"
+    send_timestamps: true
+    metric_expiration: 180m
+    enable_open_metrics: true
+
+  # Logging exporter for debugging
+  logging:
+    loglevel: info
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: /health
+
+  # Performance monitoring
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # ZPages for debugging
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [logging]
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, batch, resource, metricstransform]
+      exporters: [prometheus, logging]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [logging]

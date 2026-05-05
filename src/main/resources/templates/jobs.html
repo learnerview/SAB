@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<th:block th:replace="~{fragments/head :: head}" th:with="title='Submit Job — SAB'" />
+<body>
+    <th:block th:replace="~{fragments/sidebar}" th:with="active='jobs'" />
+    <div class="main">
+        <header class="header-strip">
+            <h1 class="page-title">Submit Task</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem">Provision new execution workloads for the worker cluster.</p>
+        </header>
+        <div class="viewport">
+            <section class="section">
+                <div class="section-header">
+                    <h3 class="section-title">Execution Configuration</h3>
+                </div>
+                <form class="form-grid" onsubmit="submitJob(); return false;">
+                    <div class="form-group">
+                        <label>Target Handler (Job Type)</label>
+                        <select id="jobType">
+                            <option value="external">External HTTP Request</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Scheduling Priority</label>
+                        <select id="priority">
+                            <option value="NORMAL">Normal Efficiency</option>
+                            <option value="HIGH">High Priority</option>
+                            <option value="LOW">Economy / Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Webhook / Target Endpoint (URL)</label>
+                        <input type="text" id="executionEndpoint" placeholder="https://api.yourdomain.com/v1/jobs" required>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Input Payload (JSON)</label>
+                        <textarea id="payload" rows="4" placeholder='{"key": "value"}'>{}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Max Attempts</label>
+                        <input type="number" id="maxAttempts" min="1" value="3">
+                    </div>
+                    <div class="form-group">
+                        <label>Timeout (seconds)</label>
+                        <input type="number" id="timeoutSeconds" min="1" value="30">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Callback URL (optional)</label>
+                        <input type="text" id="callbackUrl" placeholder="https://yourdomain.com/callback">
+                    </div>
+                    <div style="grid-column: span 2; display:flex; justify-content:flex-end;">
+                        <button class="btn btn-primary" type="submit">Schedule Task</button>
+                    </div>
+                </form>
+            </section>
+            <section class="section">
+                <div class="section-header">
+                    <h3 class="section-title">Submission History</h3>
+                    <div class="live-toggle" onclick="toggleLive()">
+                        <span class="dot dot-xs dot-green"></span>
+                        <span id="sse-label" style="font-size:0.75rem">Live Sync</span>
+                    </div>
+                </div>
+                <div class="data-box">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Job Type</th>
+                                <th>Execution Status</th>
+                                <th>Priority</th>
+                                <th>Attempts</th>
+                                <th>Created</th>
+                                <th>Result Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobs-tbody">
+                            <tr><td colspan="7" class="empty">Scanning for previous submissions...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+    <div id="toast-container" class="toast-container"></div>
+    <script th:src="@{/js/app.js}"></script>
+</body>
+</html>

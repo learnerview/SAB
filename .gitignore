@@ -1,0 +1,70 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+
+# Java/Maven
+target/
+out/
+*.class
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+# Node/Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+web/admin/dist/
+web/admin/.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+sdk/python/.venv/
+sdk/python/dist/
+sdk/python/build/
+*.egg-info/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.jks
+*.keystore
+nginx/ssl/
+scripts/nginx/ssl/
+certbot/
+ssl/
+*.der
+
+# Runtime data/logs/backups
+*.log
+logs/
+backups/
+tmp/
+tmpclaude-*
+
+# Local generated docs/assets
+*.pdf
+
+# Tooling leftovers
+.apt_generated

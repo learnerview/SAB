@@ -1,0 +1,8 @@
+#!/bin/sh
+# Maven Wrapper for SimplyDone Java SDK
+
+# Set default options
+MAVEN_OPTS="-Xmx1024m -Xms512m"
+
+# Execute Maven with the provided arguments
+exec "$@" --no-transfer-progress

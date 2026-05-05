@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<th:block th:replace="~{fragments/head :: head}" th:with="title='Dashboard — SAB'" />
+<body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+    </button>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+    </button>
+
+    <th:block th:replace="~{fragments/sidebar}" th:with="active='dashboard'" />
+    <main class="main">
+        <header class="header-strip">
+            <h1 class="page-title">SAB Control Plane</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem">Submit jobs, inspect throughput, and jump straight to the operational pages that matter.</p>
+            <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:1rem;">
+                <a class="btn btn-primary btn-sm" th:href="@{/jobs}">Submit Job</a>
+                <a class="btn btn-outline btn-sm" th:href="@{/admin}">Open Admin</a>
+                <a class="btn btn-outline btn-sm" th:href="@{/dlq}">Open DLQ</a>
+                <a class="btn btn-outline btn-sm" th:href="@{/login}">Login</a>
+            </div>
+        </header>
+
+        <div class="viewport">
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">High Priority</div>
+                        <div class="dot dot-green"></div>
+                    </div>
+                    <div class="card-value" id="stat-high">0</div>
+                    <div class="card-subtitle">Jobs in queue</div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Normal Priority</div>
+                        <div class="dot dot-yellow"></div>
+                    </div>
+                    <div class="card-value" id="stat-normal">0</div>
+                    <div class="card-subtitle">Jobs in queue</div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Low Priority</div>
+                        <div class="dot dot-red"></div>
+                    </div>
+                    <div class="card-value" id="stat-low">0</div>
+                    <div class="card-subtitle">Jobs in queue</div>
+                </div>
+                <div class="card admin-only">
+                    <div class="card-header">
+                        <div class="card-title">DLQ</div>
+                        <div class="dot dot-red"></div>
+                    </div>
+                    <div class="card-value" id="stat-dlq">0</div>
+                    <div class="card-subtitle">Failed jobs</div>
+                </div>
+            </div>
+
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Currently Running</div>
+                        <div class="dot dot-green"></div>
+                    </div>
+                    <div class="card-value" id="stat-running" style="font-size:1.5rem; color:var(--accent)">0</div>
+                    <div class="card-subtitle">Active executions</div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Total Success</div>
+                        <div class="dot dot-green"></div>
+                    </div>
+                    <div class="card-value" id="stat-success" style="font-size:1.5rem; color:var(--success)">0</div>
+                    <div class="card-subtitle">Completed jobs</div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Total Failed</div>
+                        <div class="dot dot-red"></div>
+                    </div>
+                    <div class="card-value" id="stat-failed" style="font-size:1.5rem; color:var(--danger)">0</div>
+                    <div class="card-subtitle">Failed jobs</div>
+                </div>
+            </div>
+
+            <section class="section">
+                <div class="section-header">
+                    <h3 class="section-title">What To Do Next</h3>
+                </div>
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-title">1. Authenticate</div>
+                        <div class="card-subtitle">Open the login page and enter a valid API key.</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">2. Submit a Job</div>
+                        <div class="card-subtitle">Use the Jobs page to create HTTP execution work.</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">3. Watch Outcomes</div>
+                        <div class="card-subtitle">Review the dashboard, admin metrics, and DLQ.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-header">
+                    <h3 class="section-title">Recent Event Stream</h3>
+                    <div class="live-toggle" onclick="toggleLive()">
+                        <span class="dot dot-xs dot-green"></span>
+                        <span id="sse-label" style="font-size:0.75rem">Live Monitoring</span>
+                    </div>
+                </div>
+                <div class="data-box">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Job Type</th>
+                                <th>Execution Status</th>
+                                <th>Priority</th>
+                                <th>Retries</th>
+                                <th>Timestamp</th>
+                                <th>Output Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobs-tbody">
+                            <tr><td colspan="7" class="empty">Establishing secure stream...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+    <div id="toast-container" class="toast-container"></div>
+    <script th:src="@{/js/app.js}"></script>
+</body>
+</html>
